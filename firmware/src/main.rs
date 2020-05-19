@@ -8,7 +8,6 @@ use panic_rtt_target as _;
 use nrf52832_hal::{self as hal, pac};
 use rtfm::app;
 use rtt_target::{rprintln, rtt_init_print};
-
 use rubble::{
     config::Config,
     gatt::BatteryServiceAttrs,
@@ -24,6 +23,9 @@ use rubble_nrf5x::{
     timer::BleTimer,
     utils::get_device_address,
 };
+use shtcx::{shtc1, ShtCx};
+
+mod delay;
 
 pub struct AppConfig {}
 
@@ -61,8 +63,11 @@ const APP: () = {
         let pac::Peripherals {
             CLOCK,
             FICR,
+            P0,
             RADIO,
+            TIMER0,
             TIMER2,
+            TWIM0,
             ..
         } = ctx.device;
 
@@ -70,6 +75,32 @@ const APP: () = {
         // but we also need to switch to the external HF oscillator. This is
         // needed for Bluetooth to work.
         let _clocks = hal::clocks::Clocks::new(CLOCK).enable_ext_hfosc();
+
+        // Set up GPIO peripheral
+        let gpio = hal::gpio::p0::Parts::new(P0);
+
+        // Set up delay provider on TIMER0
+        let delay = delay::TimerDelay::new(TIMER0);
+
+        // Initialize TWIM (I²C) peripheral
+        let sda = gpio.p0_31.into_floating_input().degrade();
+        let scl = gpio.p0_30.into_floating_input().degrade();
+        let twim = hal::twim::Twim::new(
+            TWIM0,
+            hal::twim::Pins { sda, scl },
+            hal::twim::Frequency::K250,
+        );
+        let mut sht = shtc1(twim, delay);
+        rprintln!(
+            "SHTC1: Device identifier is {}",
+            sht.device_identifier().unwrap()
+        );
+        let measurement = sht.measure(shtcx::PowerMode::NormalMode).unwrap();
+        rprintln!(
+            "SHTC1: {}°C / {} %RH",
+            measurement.temperature.as_degrees_celsius(),
+            measurement.humidity.as_percent()
+        );
 
         // Initialize BLE timer on TIMER2
         let ble_timer = BleTimer::init(TIMER2);
@@ -110,6 +141,7 @@ const APP: () = {
             .unwrap();
         ble_ll.timer().configure_interrupt(next_update);
 
+        rprintln!("Init done");
         init::LateResources {
             radio,
             ble_ll,

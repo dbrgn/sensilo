@@ -9,34 +9,23 @@ use nrf52832_hal::{self as hal, pac};
 use rtfm::app;
 use rtt_target::{rprintln, rtt_init_print};
 use rubble::{
-    config::Config,
-    gatt::BatteryServiceAttrs,
-    l2cap::{BleChannelMap, L2CAPState},
-    link::ad_structure::AdStructure,
-    link::queue::{PacketQueue, SimpleQueue},
-    link::{LinkLayer, Responder, MIN_PDU_BUF},
-    security::NoSecurity,
-    time::{Duration as RubbleDuration, Timer},
+    beacon::Beacon,
+    link::{ad_structure::AdStructure, DeviceAddress, MIN_PDU_BUF},
 };
 use rubble_nrf5x::{
     radio::{BleRadio, PacketBuffer},
-    timer::BleTimer,
     utils::get_device_address,
 };
-use shtcx::{shtc1, ShtCx};
+use shtcx::{shtc1, ShtC1, Measurement};
 
 mod delay;
+mod monotonic_nrf52;
 
-pub struct AppConfig {}
+use monotonic_nrf52::U32Ext;
 
-impl Config for AppConfig {
-    type Timer = BleTimer<hal::target::TIMER2>;
-    type Transmitter = BleRadio;
-    type ChannelMapper = BleChannelMap<BatteryServiceAttrs, NoSecurity>;
-    type PacketQueue = &'static mut SimpleQueue;
-}
+const MEASURE_INTERVAL_MS: u32 = 210; // Should be divisible by 3
 
-#[app(device = crate::pac, peripherals = true)]
+#[app(device = crate::pac, peripherals = true, monotonic = crate::monotonic_nrf52::Tim1)]
 const APP: () = {
     struct Resources {
         // BLE
@@ -44,16 +33,14 @@ const APP: () = {
         ble_tx_buf: PacketBuffer,
         #[init([0; MIN_PDU_BUF])]
         ble_rx_buf: PacketBuffer,
-        #[init(SimpleQueue::new())]
-        tx_queue: SimpleQueue,
-        #[init(SimpleQueue::new())]
-        rx_queue: SimpleQueue,
         radio: BleRadio,
-        ble_ll: LinkLayer<AppConfig>,
-        ble_r: Responder<AppConfig>,
+        device_address: DeviceAddress,
+
+        // Measurements
+        sht: ShtC1<hal::twim::Twim<pac::TWIM0>>,
     }
 
-    #[init(resources = [ble_tx_buf, ble_rx_buf, tx_queue, rx_queue])]
+    #[init(resources = [ble_tx_buf, ble_rx_buf], spawn = [start_measurement])]
     fn init(ctx: init::Context) -> init::LateResources {
         // Init RTT
         rtt_init_print!();
@@ -65,8 +52,7 @@ const APP: () = {
             FICR,
             P0,
             RADIO,
-            TIMER0,
-            TIMER2,
+            TIMER1,
             TWIM0,
             ..
         } = ctx.device;
@@ -79,8 +65,8 @@ const APP: () = {
         // Set up GPIO peripheral
         let gpio = hal::gpio::p0::Parts::new(P0);
 
-        // Set up delay provider on TIMER0
-        let delay = delay::TimerDelay::new(TIMER0);
+        // Initialize monotonic timer on TIMER1 (for RTFM)
+        monotonic_nrf52::Tim1::initialize(TIMER1);
 
         // Initialize TWIM (I²C) peripheral
         let sda = gpio.p0_30.into_floating_input().degrade();
@@ -90,116 +76,97 @@ const APP: () = {
             hal::twim::Pins { sda, scl },
             hal::twim::Frequency::K250,
         );
-        let mut sht = shtc1(twim, delay);
+
+        // Initialize SHT sensor
+        let mut sht = shtc1(twim);
         rprintln!(
             "SHTC1: Device identifier is {}",
             sht.device_identifier().unwrap()
         );
-        let measurement = sht.measure(shtcx::PowerMode::NormalMode).unwrap();
-        rprintln!(
-            "SHTC1: {}°C / {} %RH",
-            measurement.temperature.as_degrees_celsius(),
-            measurement.humidity.as_percent()
-        );
-
-        // Initialize BLE timer on TIMER2
-        let ble_timer = BleTimer::init(TIMER2);
 
         // Get bluetooth device address
         let device_address = get_device_address();
         rprintln!("Bluetooth device address: {:?}", device_address);
 
         // Initialize radio
-        let mut radio = BleRadio::new(
+        let radio = BleRadio::new(
             RADIO,
             &FICR,
             ctx.resources.ble_tx_buf,
             ctx.resources.ble_rx_buf,
         );
 
-        // Create bluetooth TX/RX queues
-        let (tx, tx_cons) = ctx.resources.tx_queue.split();
-        let (rx_prod, rx) = ctx.resources.rx_queue.split();
-
-        // Create the actual BLE stack objects
-        let mut ble_ll = LinkLayer::<AppConfig>::new(device_address, ble_timer);
-        let ble_r = Responder::<AppConfig>::new(
-            tx,
-            rx,
-            L2CAPState::new(BleChannelMap::with_attributes(BatteryServiceAttrs::new())),
-        );
-
-        // Send advertisement and set up regular interrupt
-        let next_update = ble_ll
-            .start_advertise(
-                RubbleDuration::from_millis(200),
-                &[AdStructure::CompleteLocalName("Sensilo")],
-                &mut radio,
-                tx_cons,
-                rx_prod,
-            )
-            .unwrap();
-        ble_ll.timer().configure_interrupt(next_update);
+        // Schedule measurement immediately
+        ctx.spawn.start_measurement().unwrap();
 
         rprintln!("Init done");
         init::LateResources {
             radio,
-            ble_ll,
-            ble_r,
+            device_address,
+            sht,
         }
     }
 
-    /// Hook up the RADIO interrupt to the Rubble BLE stack.
-    #[task(binds = RADIO, resources = [radio, ble_ll], spawn = [ble_worker], priority = 3)]
-    fn radio(cx: radio::Context) {
-        let ble_ll: &mut LinkLayer<AppConfig> = cx.resources.ble_ll;
-        if let Some(cmd) = cx
-            .resources
-            .radio
-            .recv_interrupt(ble_ll.timer().now(), ble_ll)
-        {
-            cx.resources.radio.configure_receiver(cmd.radio);
-            ble_ll.timer().configure_interrupt(cmd.next_update);
+    /// Start a measurement
+    #[task(resources = [sht], schedule = [collect_measurement])]
+    fn start_measurement(ctx: start_measurement::Context) {
+        ctx.resources.sht.start_measurement(shtcx::PowerMode::NormalMode).unwrap();
 
-            if cmd.queued_work {
-                // If there's any lower-priority work to be done, ensure that happens.
-                // If we fail to spawn the task, it's already scheduled.
-                cx.spawn.ble_worker().ok();
-            }
-        }
+        // Schedule measurement collection
+        ctx.schedule
+            .collect_measurement(ctx.scheduled + (MEASURE_INTERVAL_MS / 3).millis())
+            .unwrap();
     }
 
-    /// Hook up the TIMER2 interrupt to the Rubble BLE stack.
-    #[task(binds = TIMER2, resources = [radio, ble_ll], spawn = [ble_worker], priority = 3)]
-    fn timer2(cx: timer2::Context) {
-        let timer = cx.resources.ble_ll.timer();
-        if !timer.is_interrupt_pending() {
-            return;
-        }
-        timer.clear_interrupt();
+    /// Collect a measurement
+    #[task(resources = [sht], schedule = [broadcast_beacon])]
+    fn collect_measurement(ctx: collect_measurement::Context) {
+        let measurement = ctx.resources.sht.get_measurement_result().unwrap();
+        rprintln!(
+            "SHTC1 measurement: {}°C / {} %RH",
+            measurement.temperature.as_degrees_celsius(),
+            measurement.humidity.as_percent()
+        );
 
-        let cmd = cx.resources.ble_ll.update_timer(&mut *cx.resources.radio);
-        cx.resources.radio.configure_receiver(cmd.radio);
-
-        cx.resources
-            .ble_ll
-            .timer()
-            .configure_interrupt(cmd.next_update);
-
-        if cmd.queued_work {
-            // If there's any lower-priority work to be done, ensure that happens.
-            // If we fail to spawn the task, it's already scheduled.
-            cx.spawn.ble_worker().ok();
-        }
+        // Schedule beacon transmission
+        ctx.schedule
+            .broadcast_beacon(ctx.scheduled + (MEASURE_INTERVAL_MS / 3).millis(), measurement)
+            .unwrap();
     }
 
-    /// Lower-priority task spawned from RADIO and TIMER2 interrupts.
-    #[task(resources = [ble_r], priority = 2)]
-    fn ble_worker(cx: ble_worker::Context) {
-        // Fully drain the packet queue
-        while cx.resources.ble_r.has_work() {
-            cx.resources.ble_r.process_one().unwrap();
-        }
+    /// Broadcast the beacon exactly once.
+    #[task(resources = [radio, device_address], schedule = [start_measurement])]
+    fn broadcast_beacon(ctx: broadcast_beacon::Context, measurement: Measurement) {
+        // Beacon payload
+        let temp = measurement.temperature.as_millidegrees_celsius().to_le_bytes();
+        let humi = measurement.humidity.as_millipercent().to_le_bytes();
+
+        // Create beacon
+        let beacon = Beacon::new(
+            *ctx.resources.device_address,
+            &[
+                AdStructure::CompleteLocalName("Sensilo"),
+                AdStructure::ServiceData16 {
+                    uuid: 0x181a,
+                    data: &temp,
+                },
+                AdStructure::ServiceData16 {
+                    uuid: 0x181a,
+                    data: &humi,
+                },
+            ],
+        )
+        .expect("Could not create beacon");
+
+        // Broadcast beacon
+        beacon.broadcast(ctx.resources.radio);
+
+        // Schedule a new measurement
+        ctx.schedule
+            .start_measurement(ctx.scheduled + (MEASURE_INTERVAL_MS / 3).millis())
+            .unwrap();
+
+        rprintln!("Sent beacon");
     }
 
     // Provide unused interrupts to RTFM for its scheduling

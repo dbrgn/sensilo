@@ -14,7 +14,7 @@ panic-rtt-target = { version = "0.1", features = ["cortex-m"] }
 rtt-target = { version = "0.1", features = ["cortex-m"] }
 rubble = { git = "https://github.com/jonas-schievink/rubble" }
 rubble-nrf5x = { git = "https://github.com/jonas-schievink/rubble", features = ["52832"], default-features = false }
-shtcx = "0.9"
+shtcx = { git = "https://github.com/dbrgn/shtcx-rs" }
 
 [profile.dev]
 codegen-units = 1

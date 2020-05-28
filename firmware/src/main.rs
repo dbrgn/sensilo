@@ -16,7 +16,7 @@ use rubble_nrf5x::{
     radio::{BleRadio, PacketBuffer},
     utils::get_device_address,
 };
-use shtcx::{shtc1, ShtC1, Measurement};
+use shtcx::{shtc1, Measurement, ShtC1};
 
 mod delay;
 mod monotonic_nrf52;
@@ -24,6 +24,9 @@ mod monotonic_nrf52;
 use monotonic_nrf52::U32Ext;
 
 const MEASURE_INTERVAL_MS: u32 = 210; // Should be divisible by 3
+
+const SENSOR_TEMP: u8 = 0x01;
+const SENSOR_HUMI: u8 = 0x02;
 
 #[app(device = crate::pac, peripherals = true, monotonic = crate::monotonic_nrf52::Tim1)]
 const APP: () = {
@@ -110,7 +113,10 @@ const APP: () = {
     /// Start a measurement
     #[task(resources = [sht], schedule = [collect_measurement])]
     fn start_measurement(ctx: start_measurement::Context) {
-        ctx.resources.sht.start_measurement(shtcx::PowerMode::NormalMode).unwrap();
+        ctx.resources
+            .sht
+            .start_measurement(shtcx::PowerMode::NormalMode)
+            .unwrap();
 
         // Schedule measurement collection
         ctx.schedule
@@ -130,7 +136,10 @@ const APP: () = {
 
         // Schedule beacon transmission
         ctx.schedule
-            .broadcast_beacon(ctx.scheduled + (MEASURE_INTERVAL_MS / 3).millis(), measurement)
+            .broadcast_beacon(
+                ctx.scheduled + (MEASURE_INTERVAL_MS / 3).millis(),
+                measurement,
+            )
             .unwrap();
     }
 
@@ -138,21 +147,25 @@ const APP: () = {
     #[task(resources = [radio, device_address], schedule = [start_measurement])]
     fn broadcast_beacon(ctx: broadcast_beacon::Context, measurement: Measurement) {
         // Beacon payload
-        let temp = measurement.temperature.as_millidegrees_celsius().to_le_bytes();
+        let temp = measurement
+            .temperature
+            .as_millidegrees_celsius()
+            .to_le_bytes();
         let humi = measurement.humidity.as_millipercent().to_le_bytes();
 
         // Create beacon
+        let TYPE_MANUFACTURER_DATA = 0xff;
         let beacon = Beacon::new(
             *ctx.resources.device_address,
             &[
                 AdStructure::CompleteLocalName("Sensilo"),
-                AdStructure::ServiceData16 {
-                    uuid: 0x181a,
-                    data: &temp,
+                AdStructure::Unknown {
+                    ty: TYPE_MANUFACTURER_DATA,
+                    data: &[0xff, 0xff, SENSOR_TEMP, temp[0], temp[1], temp[2], temp[3]], // i32 LE
                 },
-                AdStructure::ServiceData16 {
-                    uuid: 0x181a,
-                    data: &humi,
+                AdStructure::Unknown {
+                    ty: TYPE_MANUFACTURER_DATA,
+                    data: &[0xff, 0xff, SENSOR_HUMI, humi[0], humi[1], humi[2], humi[3]], // i32 LE
                 },
             ],
         )

@@ -228,8 +228,8 @@ const APP: () = {
             rprintln!("Error: Could not spawn broadcast_beacon");
         }
 
-        // Increment counter
-        *COUNTER += 1;
+        // Increment counter (allow wrap-around)
+        *COUNTER = COUNTER.wrapping_add(1);
 
         // Schedule a new measurement
         ctx.schedule

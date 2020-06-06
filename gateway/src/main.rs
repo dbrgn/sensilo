@@ -16,6 +16,8 @@ const ADDRESSES: [&[u8]; 1] = [
 fn main() -> std::io::Result<()> {
     env_logger::init();
 
+    println!("Sensilo Gateway\n");
+
     println!("Available bluetooth capture interfaces:");
     for iface in pcap_async::Info::all().expect("Could not get list of interfaces") {
         if iface.name.contains("blue") || iface.name.contains("ble") {
@@ -101,6 +103,20 @@ fn process_packet(packet: Packet) -> Option<()> {
         return None;
     }
 
+    macro_rules! validate_payload_length {
+        ($payload:expr, $type:expr, $len:expr) => {
+            if $payload.len() != $len {
+                log::warn!(
+                    "Invalid {} packet: Length is {}, not {}",
+                    $type,
+                    $payload.len(),
+                    $len
+                );
+                continue;
+            }
+        };
+    }
+
     // Get data
     let mut builder = MeasurementBuilder::new(adv_report.get_address(), adv_report.get_rssi());
     log::trace!("Frame: {:?}", adv_report);
@@ -115,26 +131,14 @@ fn process_packet(packet: Packet) -> Option<()> {
                     match payload.get(0) {
                         Some(0x01) => {
                             // Temperature
-                            if payload.len() != 5 {
-                                log::warn!(
-                                    "Invalid temperature packet: Length is {}, not 5",
-                                    payload.len()
-                                );
-                                continue;
-                            }
+                            validate_payload_length!(payload, "temperature", 5);
                             builder.temperature(Temperature::from_le_bytes([
                                 payload[1], payload[2], payload[3], payload[4],
                             ]));
                         }
                         Some(0x02) => {
                             // Humidity
-                            if payload.len() != 5 {
-                                log::warn!(
-                                    "Invalid humidity packet: Length is {}, not 5",
-                                    payload.len()
-                                );
-                                continue;
-                            }
+                            validate_payload_length!(payload, "humidity", 5);
                             builder.humidity(Humidity::from_le_bytes([
                                 payload[1], payload[2], payload[3], payload[4],
                             ]));
@@ -161,7 +165,10 @@ fn process_packet(packet: Packet) -> Option<()> {
         "{} ({} RSSI): {:?} / °C {:?} %RH",
         measurement.local_name,
         measurement.rssi,
-        measurement.temperature.map(|t| t.as_degrees_celsius()).unwrap_or(-1.0),
+        measurement
+            .temperature
+            .map(|t| t.as_degrees_celsius())
+            .unwrap_or(-1.0),
         measurement.humidity.map(|h| h.as_percent()).unwrap_or(-1.0),
     );
 

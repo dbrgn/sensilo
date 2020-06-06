@@ -1,0 +1,15 @@
+[package]
+name = "sensilo-gateway"
+version = "0.1.0"
+authors = ["Danilo Bargen <mail@dbrgn.ch>"]
+edition = "2018"
+
+[dependencies]
+async-std = { version = "1", features = ["attributes"] }
+bluez = { git = "https://github.com/laptou/bluez-rs/" }
+env_logger = "0.7"
+futures = "0.3"
+hci = "0.1"
+log = "0.4"
+pcap-async = { git = "https://github.com/protectwise/pcap-async" }
+smol = "0.1"

@@ -18,7 +18,6 @@ use rubble_nrf5x::{
 };
 use shtcx::{shtc1, Measurement, ShtC1};
 
-mod delay;
 mod monotonic_nrf52;
 
 use monotonic_nrf52::U32Ext;

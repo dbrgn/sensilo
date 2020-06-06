@@ -6,7 +6,7 @@ use pcap_async::{Config, Handle, Packet, PacketStream};
 
 mod measurement;
 
-use measurement::MeasurementBuilder;
+use measurement::{Humidity, MeasurementBuilder, Temperature};
 
 const ADDRESSES: [&[u8]; 1] = [
     // Sensilo 1
@@ -122,7 +122,7 @@ fn process_packet(packet: Packet) -> Option<()> {
                                 );
                                 continue;
                             }
-                            builder.temperature(u32::from_le_bytes([
+                            builder.temperature(Temperature::from_le_bytes([
                                 payload[1], payload[2], payload[3], payload[4],
                             ]));
                         }
@@ -135,7 +135,7 @@ fn process_packet(packet: Packet) -> Option<()> {
                                 );
                                 continue;
                             }
-                            builder.humidity(u32::from_le_bytes([
+                            builder.humidity(Humidity::from_le_bytes([
                                 payload[1], payload[2], payload[3], payload[4],
                             ]));
                         }
@@ -156,7 +156,14 @@ fn process_packet(packet: Packet) -> Option<()> {
         }
     }
 
-    println!("{:?}", builder.build());
+    let measurement = builder.build().unwrap();
+    println!(
+        "{} ({} RSSI): {:?} / °C {:?} %RH",
+        measurement.local_name,
+        measurement.rssi,
+        measurement.temperature.map(|t| t.as_degrees_celsius()).unwrap_or(-1.0),
+        measurement.humidity.map(|h| h.as_percent()).unwrap_or(-1.0),
+    );
 
     Some(())
 }

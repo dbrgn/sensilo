@@ -1,29 +1,3 @@
-//! Sensilo Node Firmware
-//!
-//! ## Tasks
-//!
-//! The following tasks make up a measurement cycle:
-//!
-//! +----+    +-----------------+        +-------------------+
-//! |init| -> |start_measurement| -(t)-> |collect_measurement|
-//! +----+    +-----------------+        +-------------------+
-//!                                                   |
-//!                                                   v
-//!                                     +----------------+
-//!                                 +-- |broadcast_beacon|
-//!                                 |   +----------------+
-//!                                 |        ^    |
-//!                                 |        |    |
-//!                                 +--(b)---+    |
-//!                                               v
-//!                                       +----------+
-//!                                       |power_down|
-//!                                       +----------+
-//! Delays:
-//!
-//! - `t`: Max measurement duration for the sensor used
-//! - `b`: BEACON_BURST_INTERVAL_MS
-
 #![no_main]
 #![cfg_attr(not(test), no_std)]
 

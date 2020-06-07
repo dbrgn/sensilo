@@ -43,6 +43,21 @@
   (solderpaste_bot (create false) (suffix "_SOLDERPASTE-BOTTOM.gbr"))
  )
 
+ (device 3f226d84-8904-49ef-b716-59fc696a0e57
+  (lib_device 49470695-82b2-441b-b9b8-19af37378579)
+  (lib_footprint 0612a61c-b58c-4e80-a670-4bcec5f76eeb)
+  (position 59.055 22.86) (rotation 0.0) (mirror false)
+  (stroke_text cb66543c-69e1-4337-9b61-571089beb64e (layer top_values)
+   (height 1.0) (stroke_width 0.2) (letter_spacing auto) (line_spacing auto)
+   (align center top) (position 59.055 20.32) (rotation 0.0)
+   (auto_rotate true) (mirror false) (value "{{VALUE}}")
+  )
+  (stroke_text d2f37ec7-6f94-4403-873f-1a404be9db29 (layer top_names)
+   (height 1.0) (stroke_width 0.2) (letter_spacing auto) (line_spacing auto)
+   (align center bottom) (position 59.055 25.4) (rotation 0.0)
+   (auto_rotate true) (mirror false) (value "{{NAME}}")
+  )
+ )
  (device 638a47f3-bcc7-4420-8566-fda3ec1965dd
   (lib_device 09214b77-dd18-43c2-ade6-92e293c19fb2)
   (lib_footprint 130c36d3-10db-43f3-96ce-9de3daad5b49)

@@ -67,6 +67,11 @@
   (lib_gate bdacd02e-5654-4c1c-89a8-2b1804016a6a)
   (position 236.22 119.38) (rotation 0.0) (mirror false)
  )
+ (symbol 5e1bc837-8e41-4c7d-92f4-637e907791b0
+  (component be06d905-be3b-4881-8702-b22b3e235df7)
+  (lib_gate 09b6d6c4-2d37-432f-9471-a317aad9a499)
+  (position 10.16 162.56) (rotation 0.0) (mirror false)
+ )
  (symbol 68d45698-92bc-4c4e-80d3-a72e88ffa39d
   (component 8144fee9-463b-48cf-a50d-e04f46bb5d47)
   (lib_gate abb0fd2d-e3d8-492e-8c53-95575916028b)
@@ -76,6 +81,11 @@
   (component 244ed882-de8c-4c32-8fc7-2166ea9acb55)
   (lib_gate 42989503-2795-4892-9d83-b919cd7dad76)
   (position 116.84 48.26) (rotation 0.0) (mirror false)
+ )
+ (symbol 6d3f3350-9008-4cfe-b1e0-5b3c4c02df27
+  (component cc210224-8d69-4412-a166-f716131a0dce)
+  (lib_gate 0539fd52-890f-48af-97a9-bacfb79c9475)
+  (position 10.16 152.4) (rotation 0.0) (mirror false)
  )
  (symbol 6eb27551-d58c-4e04-9fa2-7aa1cdd55e11
   (component 748070d6-ffb7-473b-926c-1ff4dcf33752)
@@ -202,6 +212,13 @@
   )
   (label d85fcc99-5c68-47ed-8781-0052ae1a53cc
    (position 246.38 53.34) (rotation 0.0)
+  )
+ )
+ (netsegment 0a545d3b-87eb-4f85-83dc-3ed82a3c3b4f
+  (net fd9d25aa-52a1-4e76-a154-07f27d074680)
+  (line 9005278a-1798-4802-817d-6e8eafd3ed65 (width 0.15875)
+   (from (symbol bee4ba0e-c666-409d-9db7-fc198b457b6b) (pin b689bb87-a3ad-4c42-a5f2-cd2e0e9b1255))
+   (to (symbol 5e1bc837-8e41-4c7d-92f4-637e907791b0) (pin 771c2d8b-e4ad-487b-bcb1-fe2bc10c8a03))
   )
  )
  (netsegment 0e68cca5-0d15-4c3d-a628-c5c8f46c1c0b
@@ -383,6 +400,13 @@
   )
   (label 77834148-88fd-4608-9299-12e13e35a38c
    (position 81.28 25.4) (rotation 0.0)
+  )
+ )
+ (netsegment 70800ecd-56a3-44ef-a595-00a43a2a4132
+  (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c)
+  (line 16976f9e-ea1d-45f1-9356-3c1700051d81 (width 0.15875)
+   (from (symbol 6d3f3350-9008-4cfe-b1e0-5b3c4c02df27) (pin abcc319b-d09f-437b-a624-3dcf3eff5792))
+   (to (symbol bee4ba0e-c666-409d-9db7-fc198b457b6b) (pin 0c34bf0f-deae-4dd1-b331-5c0d61e403f4))
   )
  )
  (netsegment 70bf9926-f8dc-48b9-872d-d7d4c0642a6e

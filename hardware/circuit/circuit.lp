@@ -437,11 +437,29 @@
   (signal f4517dbd-faa8-43b4-ab18-de94fc724309 (net none))
   (signal f5e76f3a-2405-48a5-91dc-25606599ffec (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
  )
+ (component c88a08dc-b0b9-4211-9753-86de2cc98fe1
+  (lib_component 107d2abc-3ca9-4a57-b7f6-a7f3dd6cf1f8)
+  (lib_variant f73b0753-2d0e-4fe6-9c4f-3a90830f07f1)
+  (lib_device e6b31596-3f12-465b-bc58-96c49b91aa9c)
+  (name "U6") (value "{{PARTNUMBER or DEVICE or COMPONENT}}")
+  (signal 706f7c71-4a8e-4969-a686-2f0a726769d9 (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
+  (signal 74eaa36b-eae0-4070-a84f-8beefd60a813 (net fd9d25aa-52a1-4e76-a154-07f27d074680))
+  (signal a246f6be-d753-4e03-ad16-4fb96b3ba7a2 (net 46dc1a75-81a6-4ae8-a6cd-24ff74d5c5c0))
+  (signal af36275f-c1df-45b7-9fee-678c81e3937e (net none))
+  (signal e54ad769-3de8-4154-83e6-ba998ae9465f (net 035c2839-e68a-4e02-b301-837bb065135d))
+ )
  (component cc210224-8d69-4412-a166-f716131a0dce
   (lib_component 8076f6be-bfab-4fc1-9772-5d54465dd7e1)
   (lib_variant f09ad258-595b-4ee9-a1fc-910804a203ae)
   (lib_device none)
   (name "GND11") (value "GND")
+  (signal ff161c97-29a5-43aa-a9ae-3ca7a66982ce (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
+ )
+ (component cce8362d-47e5-4b63-ab97-1d5a27d1e42f
+  (lib_component 8076f6be-bfab-4fc1-9772-5d54465dd7e1)
+  (lib_variant f09ad258-595b-4ee9-a1fc-910804a203ae)
+  (lib_device none)
+  (name "GND13") (value "GND")
   (signal ff161c97-29a5-43aa-a9ae-3ca7a66982ce (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
  )
  (component d11e279a-7ba0-4e07-aa32-bc9107c56858
@@ -471,6 +489,13 @@
   (lib_device none)
   (name "GND8") (value "GND")
   (signal ff161c97-29a5-43aa-a9ae-3ca7a66982ce (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
+ )
+ (component de95664c-a719-4614-986e-4bd101a497a9
+  (lib_component 58c3c6cd-11eb-4557-aa3f-d3e05874afde)
+  (lib_variant afb86b45-68ec-47b6-8d96-153d73567228)
+  (lib_device none)
+  (name "VCC8") (value "VCC")
+  (signal 1d893320-f811-4a79-b64e-cc23d749d394 (net fd9d25aa-52a1-4e76-a154-07f27d074680))
  )
  (component e5be8035-d236-498c-9bfc-e4b4a6d85121
   (lib_component ef80cd5e-2689-47ee-8888-31d04fc99174)

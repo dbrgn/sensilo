@@ -94,7 +94,7 @@
   (position 33.36875 38.7025) (rotation 180.0) (mirror false)
   (stroke_text 5b0ffd48-7eeb-4966-a925-4931ab89d564 (layer top_names)
    (height 0.8) (stroke_width 0.15) (letter_spacing auto) (line_spacing auto)
-   (align left center) (position 38.06875 38.7675) (rotation 0.0)
+   (align left center) (position 28.765 38.7025) (rotation 180.0)
    (auto_rotate true) (mirror false) (value "{{NAME}}")
   )
   (stroke_text a11e950d-4377-431a-92f9-2cb8446dbf5d (layer top_values)
@@ -116,6 +116,16 @@
    (height 1.0) (stroke_width 0.2) (letter_spacing auto) (line_spacing auto)
    (align left top) (position 13.4125 21.96) (rotation 0.0)
    (auto_rotate true) (mirror false) (value "{{VALUE}}")
+  )
+ )
+ (device 5c80be6c-2008-4859-840f-03a9c3b2a6e3
+  (lib_device 7186a6b2-4042-451f-a698-288394ec67a7)
+  (lib_footprint 3f3b7cec-1a06-4103-a1b6-a775dacba52f)
+  (position 39.52875 33.81375) (rotation 0.0) (mirror false)
+  (stroke_text 9d732277-1102-4fda-be5a-0c99233c8cda (layer top_stop_mask)
+   (height 1.0) (stroke_width 0.2) (letter_spacing auto) (line_spacing 1.48)
+   (align left center) (position 41.62875 33.81375) (rotation 0.0)
+   (auto_rotate false) (mirror false) (value "{{VALUE}}")
   )
  )
  (device 638a47f3-bcc7-4420-8566-fda3ec1965dd
@@ -1129,6 +1139,12 @@
   (vertex (position 50.0 35.0) (angle 90.0))
   (vertex (position 45.0 40.0) (angle 0.0))
   (vertex (position 5.0 40.0) (angle 0.0))
+ )
+
+ (stroke_text afea8cea-5f1c-4dee-b61f-c01cec820bdf (layer top_stop_mask)
+  (height 1.2) (stroke_width 0.2) (letter_spacing auto) (line_spacing auto)
+  (align left bottom) (position 38.89375 36.35375) (rotation 0.0)
+  (auto_rotate true) (mirror false) (value "{{PROJECT}} {{VERSION}}")
  )
 
  (hole 2087e8da-24c4-49c2-8a58-a0ed32341d20 (diameter 3.4) (position 46.0 4.0))

@@ -343,8 +343,8 @@
   (attribute "PARTNUMBER" (type string) (unit none) (value "S2B-XH-A"))
   (attribute "MANUFACTURER" (type string) (unit none) (value "JST"))
   (attribute "DIGIKEY" (type string) (unit none) (value "455-2257-ND"))
-  (signal b947df00-b631-4b52-aa01-b7cf15062801 (net b64f35d9-f667-44da-9b4b-a4a7c8c0a4b3))
-  (signal dc972f6a-7d20-47e5-95e1-07c700638184 (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
+  (signal b947df00-b631-4b52-aa01-b7cf15062801 (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
+  (signal dc972f6a-7d20-47e5-95e1-07c700638184 (net b64f35d9-f667-44da-9b4b-a4a7c8c0a4b3))
  )
  (component b24f6ff2-63f1-4c8b-9a74-41a799ddf0ff
   (lib_component 2b24b18d-bd95-4fb4-8fe6-bce1d020ead4)

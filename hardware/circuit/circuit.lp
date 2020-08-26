@@ -405,7 +405,7 @@
  (component c579263b-88d5-4c53-949c-29e85eef73c9
   (lib_component 52732378-1be2-4e77-a559-350633e5b5ff)
   (lib_variant 46d5f94d-2231-49fe-aaff-158253274929)
-  (lib_device none)
+  (lib_device e7fddc8c-4233-418f-8db4-143653d29968)
   (name "U5") (value "{{PARTNUMBER or DEVICE or COMPONENT}}")
   (signal 48c0bd87-fa8a-43e5-b1f5-3e78770be5ca (net c317ddd1-5217-4583-ab56-2eff80582084))
   (signal 4aea99f7-782d-4c1d-a625-b4b975982b05 (net b64f35d9-f667-44da-9b4b-a4a7c8c0a4b3))

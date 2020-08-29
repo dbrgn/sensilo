@@ -141,6 +141,7 @@
   (lib_device 41c899fa-89b1-4d23-93a1-e03f6f5e88eb)
   (name "U4") (value "{{PARTNUMBER or DEVICE or COMPONENT}}")
   (attribute "PARTNUMBER" (type string) (unit none) (value "SGP40"))
+  (attribute "MANUFACTURER" (type string) (unit none) (value "Sensirion"))
   (signal 04559af3-eab0-4270-8754-4678e061c646 (net 93ce9c03-b1e3-4ca9-b33b-f1062f8ae73c))
   (signal 1589e22a-308b-4cf8-a864-0e5612768334 (net fde51a5f-2a7c-4c9e-8a77-cf450deec8eb))
   (signal 1d59648d-29e9-496b-969d-92c921e07b69 (net 46dc1a75-81a6-4ae8-a6cd-24ff74d5c5c0))

@@ -2,7 +2,7 @@
 
 Sensilo sensor node PCB.
 
-![screenshot](output/v1/screenshot.png)
+![PCBs](output/v1/pcbs.png)
 
 ## Editing
 

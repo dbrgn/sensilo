@@ -1,12 +1,9 @@
-[probe]
+[default.probe]
 protocol = "Swd"
 
-[flashing]
+[default.flashing]
 enabled = false
 restore_unwritten_bytes = false
 
-[general]
+[default.general]
 chip = "nrf52832_xxAA"
-
-[rtt]
-enabled = true

@@ -1,6 +1,6 @@
 # Sensilo Node Firmware
 
-Firmware uses the RTIC (formerly RTFM) embedded concurrency framework.
+Firmware uses the RTIC embedded concurrency framework.
 
 ## Tasks
 
@@ -61,7 +61,7 @@ Instructions: https://blog.dbrgn.ch/2020/5/16/nrf52-unprotect-flash-jlink-openoc
 
 Install cargo-embed:
 
-    $ cargo install -f --git https://github.com/probe-rs/cargo-embed/
+    $ cargo install -f cargo-embed
 
 Flash the target:
 

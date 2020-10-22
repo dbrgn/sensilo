@@ -63,9 +63,17 @@ Install cargo-embed:
 
     $ cargo install -f cargo-embed
 
-Flash the target:
+Flash and reset the target:
 
-    $ cargo embed --release
+    $ cargo embed flash --release
+
+Flash and reset, then show RTT console:
+
+    $ cargo embed flashrtt --release
+
+Only show RTT console:
+
+    $ cargo embed rtt --release
 
 ### Flashing (openocd)
 

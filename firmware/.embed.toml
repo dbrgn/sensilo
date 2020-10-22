@@ -1,9 +1,40 @@
+# Chip and probe config
+
+[default.general]
+chip = "nrf52832_xxAA"
+
 [default.probe]
 protocol = "Swd"
+
+# Disable everything for default command
 
 [default.flashing]
 enabled = false
 restore_unwritten_bytes = false
 
-[default.general]
-chip = "nrf52832_xxAA"
+[default.reset]
+enabled = false
+
+# Flash target
+
+[flash.flashing]
+enabled = true
+
+[flash.reset]
+enabled = true
+
+# RTT target
+
+[rtt.rtt]
+enabled = true
+
+# Flash + RTT target
+
+[flashrtt.flashing]
+enabled = true
+
+[flashrtt.reset]
+enabled = true
+
+[flashrtt.rtt]
+enabled = true

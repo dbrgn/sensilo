@@ -86,8 +86,8 @@ const APP: () = {
         monotonic_nrf52::Tim1::initialize(TIMER1);
 
         // Initialize TWIM (I²C) peripheral
-        let sda = gpio.p0_30.into_floating_input().degrade();
-        let scl = gpio.p0_31.into_floating_input().degrade();
+        let sda = gpio.p0_26.into_floating_input().degrade();
+        let scl = gpio.p0_25.into_floating_input().degrade();
         let twim = hal::twim::Twim::new(
             TWIM0,
             hal::twim::Pins { sda, scl },

@@ -5,7 +5,7 @@
 #[cfg(not(test))]
 use panic_rtt_target as _;
 
-use nrf52832_hal::{self as hal, pac};
+use nrf52832_hal::{self as hal, pac, prelude::*};
 use rtfm::app;
 use rtt_target::{rprintln, rtt_init_print};
 use rubble::{
@@ -39,6 +39,9 @@ const AD_STRUCTURE_MANUFACTURER_DATA: u8 = 0xff;
 #[app(device = crate::pac, peripherals = true, monotonic = crate::monotonic_nrf52::Tim1)]
 const APP: () = {
     struct Resources {
+        // LED
+        led: hal::gpio::p0::P0_07<hal::gpio::Output<hal::gpio::PushPull>>,
+
         // BLE
         #[init([0; MIN_PDU_BUF])]
         ble_tx_buf: PacketBuffer,
@@ -85,6 +88,10 @@ const APP: () = {
         // Initialize monotonic timer on TIMER1 (for RTFM)
         monotonic_nrf52::Tim1::initialize(TIMER1);
 
+        // Initialize LED pin
+        // TODO: LED wrapper that knows whether low power mode is enabled
+        let led = gpio.p0_07.into_push_pull_output(hal::gpio::Level::High);
+
         // Initialize TWIM (I²C) peripheral
         let sda = gpio.p0_26.into_floating_input().degrade();
         let scl = gpio.p0_25.into_floating_input().degrade();
@@ -121,6 +128,7 @@ const APP: () = {
             radio,
             device_address,
             sht,
+            led,
         }
     }
 
@@ -212,9 +220,12 @@ const APP: () = {
     }
 
     /// Broadcast the beacon until the BEACON_BURST_COUNT has been reached.
-    #[task(resources = [radio, beacon], schedule = [broadcast_beacon])]
+    #[task(resources = [radio, beacon, led], schedule = [broadcast_beacon])]
     fn broadcast_beacon(ctx: broadcast_beacon::Context, i: u8) {
-        if i >= BEACON_BURST_COUNT {
+        if i == 0 {
+            ctx.resources.led.set_low().ok();
+        } else if i >= BEACON_BURST_COUNT {
+            ctx.resources.led.set_high().ok();
             return;
         }
 

@@ -6,11 +6,13 @@ use pcap_async::{Config, Handle, Packet, PacketStream};
 
 mod measurement;
 
-use measurement::{Humidity, MeasurementBuilder, Temperature};
+use measurement::MeasurementBuilder;
 
-const ADDRESSES: [&[u8]; 1] = [
-    // Sensilo 1
+const ADDRESSES: [&[u8]; 2] = [
+    // Devboard
     &[79, 67, 92, 159, 209, 114],
+    // Sensilo 1
+    &[0x7a, 0xf1, 0x67, 0x74, 0x4f, 0x73],
 ];
 
 fn main() -> std::io::Result<()> {
@@ -43,7 +45,7 @@ fn main() -> std::io::Result<()> {
         while let Some(packets_result) = stream.next().await {
             if let Ok(packets) = packets_result {
                 for packet in packets {
-                    println!("{:?}", packet);
+                    log::trace!("{:?}", packet);
                     let _ = process_packet(packet);
                 }
             } else {
@@ -106,21 +108,11 @@ fn process_packet(packet: Packet) -> Option<()> {
 
     // Filter by address
     if !ADDRESSES.contains(&adv_report.get_address()) {
+        log::debug!(
+            "Ignoring device with address {:?}",
+            &adv_report.get_address()
+        );
         return None;
-    }
-
-    macro_rules! validate_payload_length {
-        ($payload:expr, $type:expr, $len:expr) => {
-            if $payload.len() != $len {
-                log::warn!(
-                    "Invalid {} packet: Length is {}, not {}",
-                    $type,
-                    $payload.len(),
-                    $len
-                );
-                continue;
-            }
-        };
     }
 
     // Get data
@@ -134,27 +126,9 @@ fn process_packet(packet: Packet) -> Option<()> {
             BasicDataType_Data::ManufacturerSpecificData(data) => {
                 if data.get_company_identifier_code() == 0xffff {
                     let payload = data.get_data();
-                    match payload.get(0) {
-                        Some(0x01) => {
-                            // Temperature
-                            validate_payload_length!(payload, "temperature", 5);
-                            builder.temperature(Temperature::from_le_bytes([
-                                payload[1], payload[2], payload[3], payload[4],
-                            ]));
-                        }
-                        Some(0x02) => {
-                            // Humidity
-                            validate_payload_length!(payload, "humidity", 5);
-                            builder.humidity(Humidity::from_le_bytes([
-                                payload[1], payload[2], payload[3], payload[4],
-                            ]));
-                        }
-                        Some(other) => {
-                            log::info!("Unknown payload type: {}", other);
-                        }
-                        None => {
-                            log::info!("Empty payload");
-                        }
+                    log::trace!("Payload: {:?}", payload);
+                    if let Err(e) = builder.parse_payload(&payload) {
+                        log::warn!("Could not parse payload: {}", e);
                     }
                 } else {
                     // Not a Sensilo advertisement frame
@@ -168,14 +142,19 @@ fn process_packet(packet: Packet) -> Option<()> {
 
     let measurement = builder.build().unwrap();
     println!(
-        "{} ({} RSSI): {:?} / °C {:?} %RH",
+        "{} ({} RSSI): [{}] {} °C | {} %RH | {} Lux",
         measurement.local_name,
         measurement.rssi,
+        measurement.counter,
         measurement
             .temperature
             .map(|t| t.as_degrees_celsius())
             .unwrap_or(-1.0),
         measurement.humidity.map(|h| h.as_percent()).unwrap_or(-1.0),
+        measurement
+            .ambient_light
+            .map(|h| h.as_lux())
+            .unwrap_or(-1.0),
     );
 
     Some(())

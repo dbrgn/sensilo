@@ -16,6 +16,7 @@ use rubble_nrf5x::{
     radio::{BleRadio, PacketBuffer},
     utils::get_device_address,
 };
+use shared_bus_rtic::SharedBus;
 use shtcx::{shtc3, ShtC3};
 
 mod monotonic_nrf52;
@@ -36,6 +37,12 @@ const SENSOR_HUMI: u8 = 0x02;
 // BLE Beacon
 const AD_STRUCTURE_MANUFACTURER_DATA: u8 = 0xff;
 
+pub struct SharedBusResources<T: 'static> {
+    sht: ShtC3<SharedBus<T>>,
+}
+
+type SharedBusType = hal::twim::Twim<pac::TWIM0>;
+
 #[app(device = crate::pac, peripherals = true, monotonic = crate::monotonic_nrf52::Tim1)]
 const APP: () = {
     struct Resources {
@@ -50,8 +57,10 @@ const APP: () = {
         radio: BleRadio,
         device_address: DeviceAddress,
 
+        // I²C devices
+        i2c: SharedBusResources<SharedBusType>,
+
         // Measurements
-        sht: ShtC3<hal::twim::Twim<pac::TWIM0>>,
         #[init(None)]
         measurement_start: Option<Instant>,
 
@@ -101,8 +110,11 @@ const APP: () = {
             hal::twim::Frequency::K250,
         );
 
+        // Create shared bus
+        let bus_manager = shared_bus_rtic::new!(twim, SharedBusType);
+
         // Initialize SHT sensor
-        let mut sht = shtc3(twim);
+        let mut sht = shtc3(bus_manager.acquire());
         rprintln!(
             "SHTC3: Device identifier is {}",
             sht.device_identifier().unwrap()
@@ -127,15 +139,15 @@ const APP: () = {
         init::LateResources {
             radio,
             device_address,
-            sht,
+            i2c: SharedBusResources { sht },
             led,
         }
     }
 
     /// Start a measurement
-    #[task(resources = [sht, measurement_start], schedule = [collect_measurement])]
+    #[task(resources = [i2c, measurement_start], schedule = [collect_measurement])]
     fn start_measurement(ctx: start_measurement::Context) {
-        let sht = ctx.resources.sht;
+        let i2c = ctx.resources.i2c;
         let power_mode = shtcx::PowerMode::NormalMode;
 
         // Store the instant when this task was scheduled.
@@ -143,10 +155,10 @@ const APP: () = {
         *ctx.resources.measurement_start = Some(ctx.scheduled);
 
         // Trigger measurement
-        sht.start_measurement(power_mode).unwrap();
+        i2c.sht.start_measurement(power_mode).unwrap();
 
         // Schedule measurement collection
-        let timedelta = (shtcx::max_measurement_duration(sht, power_mode) as u32).micros();
+        let timedelta = (shtcx::max_measurement_duration(&i2c.sht, power_mode) as u32).micros();
         ctx.schedule
             .collect_measurement(Instant::now() + timedelta)
             .unwrap();
@@ -155,7 +167,7 @@ const APP: () = {
     /// Collect a measurement. Then send the data using non-connectable BLE
     /// advertisement frames (beacons).
     #[task(
-        resources = [sht, measurement_start, device_address, beacon],
+        resources = [i2c, measurement_start, device_address, beacon],
         schedule = [start_measurement],
         spawn = [broadcast_beacon],
     )]
@@ -170,7 +182,7 @@ const APP: () = {
             .expect("Cannot collect measurement without starting a measurement first");
 
         // Collect measurement result from sensor
-        let measurement = ctx.resources.sht.get_measurement_result().unwrap();
+        let measurement = ctx.resources.i2c.sht.get_measurement_result().unwrap();
         rprintln!(
             "SHTC3 measurement: {}°C / {} %RH",
             measurement.temperature.as_degrees_celsius(),

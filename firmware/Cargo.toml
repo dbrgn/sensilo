@@ -14,6 +14,7 @@ panic-rtt-target = { version = "0.1", features = ["cortex-m"] }
 rtt-target = { version = "0.2", features = ["cortex-m"] }
 rubble = { git = "https://github.com/jonas-schievink/rubble" }
 rubble-nrf5x = { git = "https://github.com/jonas-schievink/rubble", features = ["52832"], default-features = false }
+shared-bus-rtic = "0.2"
 shtcx = "0.10"
 
 [profile.dev]

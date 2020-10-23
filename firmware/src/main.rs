@@ -16,7 +16,7 @@ use rubble_nrf5x::{
     radio::{BleRadio, PacketBuffer},
     utils::get_device_address,
 };
-use shtcx::{shtc1, ShtC1};
+use shtcx::{shtc3, ShtC3};
 
 mod monotonic_nrf52;
 
@@ -51,7 +51,7 @@ const APP: () = {
         device_address: DeviceAddress,
 
         // Measurements
-        sht: ShtC1<hal::twim::Twim<pac::TWIM0>>,
+        sht: ShtC3<hal::twim::Twim<pac::TWIM0>>,
         #[init(None)]
         measurement_start: Option<Instant>,
 
@@ -102,9 +102,9 @@ const APP: () = {
         );
 
         // Initialize SHT sensor
-        let mut sht = shtc1(twim);
+        let mut sht = shtc3(twim);
         rprintln!(
-            "SHTC1: Device identifier is {}",
+            "SHTC3: Device identifier is {}",
             sht.device_identifier().unwrap()
         );
 
@@ -172,7 +172,7 @@ const APP: () = {
         // Collect measurement result from sensor
         let measurement = ctx.resources.sht.get_measurement_result().unwrap();
         rprintln!(
-            "SHTC1 measurement: {}°C / {} %RH",
+            "SHTC3 measurement: {}°C / {} %RH",
             measurement.temperature.as_degrees_celsius(),
             measurement.humidity.as_percent()
         );

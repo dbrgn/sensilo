@@ -231,6 +231,9 @@ const APP: () = {
                 None
             }
         };
+        if let Err(e) = i2c.veml.disable() {
+            rprintln!("VEML7700: Could not shut down: {:?}", e);
+        }
 
         // Prepare beacon payload
         let temp = sht_measurement

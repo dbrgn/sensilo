@@ -324,7 +324,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfcd4deccf5edead7dcd0531448f0bab1b935e6d88e47225b4b7c6bd3a443180"
 dependencies = [
  "cortex-m",
- "rtt-target 0.2.2",
+ "rtt-target",
 ]
 
 [[package]]
@@ -376,21 +376,11 @@ dependencies = [
 
 [[package]]
 name = "rtt-target"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26ebda2070a2dd2f5d1bba0c427055f475bb011ca8215add472b6e6ba6b7265c"
-dependencies = [
- "cortex-m",
- "ufmt-write",
- "vcell",
-]
-
-[[package]]
-name = "rtt-target"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0869b4c5b6a6d8c5583fc473f9eb3423a170f77626b8c8a7fb18eddcda5770e2"
 dependencies = [
+ "cortex-m",
  "ufmt-write",
 ]
 
@@ -449,7 +439,7 @@ dependencies = [
  "embedded-hal",
  "nrf52832-hal",
  "panic-rtt-target",
- "rtt-target 0.1.1",
+ "rtt-target",
  "rubble",
  "rubble-nrf5x",
  "shtcx",

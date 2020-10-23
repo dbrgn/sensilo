@@ -30,14 +30,20 @@ fn main() -> std::io::Result<()> {
     println!();
 
     smol::run(async {
-        //let handle = Handle::live_capture("bluetooth0").expect("No handle created");
-        let handle = Handle::file_capture("/tmp/ble.pcap").expect("No handle created");
-        let mut stream = PacketStream::new(Config::default(), std::sync::Arc::clone(&handle))
-            .expect("Failed to build");
+        println!("Opening device bluetooth0...");
+        let handle = Handle::live_capture("bluetooth0").expect("No handle created");
+        //let handle = Handle::file_capture("/tmp/ble.pcap").expect("No handle created");
+
+        let mut config = Config::default();
+        config.with_blocking(true);
+
+        let mut stream =
+            PacketStream::new(config, std::sync::Arc::clone(&handle)).expect("Failed to build");
 
         while let Some(packets_result) = stream.next().await {
             if let Ok(packets) = packets_result {
                 for packet in packets {
+                    println!("{:?}", packet);
                     let _ = process_packet(packet);
                 }
             } else {

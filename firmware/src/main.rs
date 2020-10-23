@@ -130,7 +130,7 @@ const APP: () = {
 
         // Initialize VEML7700 lux sensor
         let mut veml = Veml6030::new(bus_manager.acquire(), veml6030::SlaveAddr::default());
-        if let Err(e) = veml.set_gain(veml6030::Gain::One) {
+        if let Err(e) = veml.set_gain(veml6030::Gain::OneQuarter) {
             rprintln!("VEML7700: Could not set gain: {:?}", e);
         }
         if let Err(e) = veml.set_integration_time(VEML_INTEGRATION_TIME) {

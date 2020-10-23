@@ -29,8 +29,8 @@ use monotonic_nrf52::{Instant, U32Ext};
 // Measure at a specific interval
 const MEASURE_INTERVAL_MS: u32 = 3000;
 
-// Send 3 beacons, spaced 20 ms apart
-const BEACON_BURST_COUNT: u8 = 3;
+// Send 5 beacons, spaced 20 ms apart
+const BEACON_BURST_COUNT: u8 = 5;
 const BEACON_BURST_INTERVAL_MS: u32 = 20;
 
 // Sensor types

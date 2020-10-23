@@ -5,6 +5,8 @@
 #[cfg(not(test))]
 use panic_rtt_target as _;
 
+use core::cmp::max;
+
 use nrf52832_hal::{self as hal, pac, prelude::*};
 use rtic::app;
 use rtt_target::{rprintln, rtt_init_print};
@@ -18,6 +20,7 @@ use rubble_nrf5x::{
 };
 use shared_bus_rtic::SharedBus;
 use shtcx::{shtc3, ShtC3};
+use veml6030::Veml6030;
 
 mod monotonic_nrf52;
 
@@ -33,12 +36,17 @@ const BEACON_BURST_INTERVAL_MS: u32 = 20;
 // Sensor types
 const SENSOR_TEMP: u8 = 0x01;
 const SENSOR_HUMI: u8 = 0x02;
+const SENSOR_LUX: u8 = 0x04;
 
 // BLE Beacon
 const AD_STRUCTURE_MANUFACTURER_DATA: u8 = 0xff;
 
+// VEML sensor integration time
+const VEML_INTEGRATION_TIME: veml6030::IntegrationTime = veml6030::IntegrationTime::Ms25;
+
 pub struct SharedBusResources<T: 'static> {
     sht: ShtC3<SharedBus<T>>,
+    veml: Veml6030<SharedBus<T>>,
 }
 
 type SharedBusType = hal::twim::Twim<pac::TWIM0>;
@@ -120,6 +128,15 @@ const APP: () = {
             sht.device_identifier().unwrap()
         );
 
+        // Initialize VEML7700 lux sensor
+        let mut veml = Veml6030::new(bus_manager.acquire(), veml6030::SlaveAddr::default());
+        if let Err(e) = veml.set_gain(veml6030::Gain::One) {
+            rprintln!("VEML7700: Could not set gain: {:?}", e);
+        }
+        if let Err(e) = veml.set_integration_time(VEML_INTEGRATION_TIME) {
+            rprintln!("VEML7700: Could not set gain: {:?}", e);
+        }
+
         // Get bluetooth device address
         let device_address = get_device_address();
         rprintln!("Bluetooth device address: {:?}", device_address);
@@ -139,7 +156,7 @@ const APP: () = {
         init::LateResources {
             radio,
             device_address,
-            i2c: SharedBusResources { sht },
+            i2c: SharedBusResources { sht, veml },
             led,
         }
     }
@@ -154,11 +171,23 @@ const APP: () = {
         // This ensures that there is no jitter in scheduling.
         *ctx.resources.measurement_start = Some(ctx.scheduled);
 
-        // Trigger measurement
+        // Trigger SHTC3 measurement
         i2c.sht.start_measurement(power_mode).unwrap();
+        let sht_delta_us: u32 = shtcx::max_measurement_duration(&i2c.sht, power_mode) as u32;
+
+        // Turn on VEML7700
+        //
+        // Note: After enabling the sensor, a startup time of 4 ms plus the integration time must
+        // be awaited.
+        if let Err(e) = i2c.veml.enable() {
+            rprintln!("VEML7700: Could not enable sensor: {:?}", e);
+        }
+        let veml_delta_us: u32 = VEML_INTEGRATION_TIME.as_us() + 4_000;
+
+        // Calculate timedelta until collection
+        let timedelta = max(sht_delta_us, veml_delta_us).micros();
 
         // Schedule measurement collection
-        let timedelta = (shtcx::max_measurement_duration(&i2c.sht, power_mode) as u32).micros();
         ctx.schedule
             .collect_measurement(Instant::now() + timedelta)
             .unwrap();
@@ -174,6 +203,8 @@ const APP: () = {
     fn collect_measurement(ctx: collect_measurement::Context) {
         static mut COUNTER: u16 = 0;
 
+        let i2c = ctx.resources.i2c;
+
         // Take measurement start time
         let measurement_start = ctx
             .resources
@@ -181,20 +212,35 @@ const APP: () = {
             .take()
             .expect("Cannot collect measurement without starting a measurement first");
 
-        // Collect measurement result from sensor
-        let measurement = ctx.resources.i2c.sht.get_measurement_result().unwrap();
+        // Collect SHTC3 measurement result
+        let sht_measurement = i2c.sht.get_measurement_result().unwrap();
         rprintln!(
             "SHTC3 measurement: {}°C / {} %RH",
-            measurement.temperature.as_degrees_celsius(),
-            measurement.humidity.as_percent()
+            sht_measurement.temperature.as_degrees_celsius(),
+            sht_measurement.humidity.as_percent()
         );
 
+        // Collect VEML7700 measurement result
+        let veml_measurement = match i2c.veml.read_lux() {
+            Ok(lux) => {
+                rprintln!("VEML7700 measurement: {:.1} lx", lux);
+                Some(lux)
+            }
+            Err(e) => {
+                rprintln!("VEML7700: Could not measure lux: {:?}", e);
+                None
+            }
+        };
+
         // Prepare beacon payload
-        let temp = measurement
+        let temp = sht_measurement
             .temperature
             .as_millidegrees_celsius()
             .to_le_bytes();
-        let humi = measurement.humidity.as_millipercent().to_le_bytes();
+        let humi = sht_measurement.humidity.as_millipercent().to_le_bytes();
+        let lux = veml_measurement
+            .expect("TODO: Allow VEML measurement errors")
+            .to_le_bytes();
         let counter_bytes = COUNTER.to_le_bytes();
         #[rustfmt::skip]
         let payload = [
@@ -202,6 +248,7 @@ const APP: () = {
             counter_bytes[0], counter_bytes[1],
             SENSOR_TEMP, temp[0], temp[1], temp[2], temp[3], // i32 LE
             SENSOR_HUMI, humi[0], humi[1], humi[2], humi[3], // i32 LE
+            SENSOR_LUX, lux[0], lux[1], lux[2], lux[3], // f32 LE
         ];
 
         // Create beacon

@@ -47,6 +47,7 @@ All multi-byte values are in little endian byte order.
 | 0x01 | Temperature | Millidegrees Celsius (i32) |
 | 0x02 | Relative Humidity | Millipercent (i32) |
 | 0x03 | Particulate Matter | TBD |
+| 0x04 | Ambient Light | Lux (f32) |
 
 ## Development
 

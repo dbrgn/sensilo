@@ -1,3 +1,5 @@
+use crate::types::Address;
+
 /// A temperature measurement.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Temperature(i32);
@@ -58,7 +60,7 @@ impl AmbientLight {
 
 #[derive(Debug)]
 pub struct Measurement<'a> {
-    pub address: &'a [u8],
+    pub address: Address,
     pub rssi: u8,
     pub local_name: &'a str,
     pub counter: u16,
@@ -67,9 +69,8 @@ pub struct Measurement<'a> {
     pub ambient_light: Option<AmbientLight>,
 }
 
-#[derive(Default)]
 pub struct MeasurementBuilder<'a> {
-    address: &'a [u8],
+    address: Address,
     rssi: u8,
     local_name: Option<&'a str>,
     counter: Option<u16>,
@@ -80,12 +81,16 @@ pub struct MeasurementBuilder<'a> {
 }
 
 impl<'a> MeasurementBuilder<'a> {
-    pub fn new(address: &'a [u8], rssi: u8) -> Self {
+    pub fn new(address: Address, rssi: u8) -> Self {
         MeasurementBuilder {
             address,
             rssi,
+            local_name: None,
+            counter: None,
+            temperature: None,
+            humidity: None,
+            ambient_light: None,
             parse_error: false,
-            ..Default::default()
         }
     }
 

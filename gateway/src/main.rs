@@ -1,19 +1,30 @@
+use std::collections::HashMap;
+
 use futures::StreamExt;
 use hci::protocol::{
     BasicDataType_Data, HciEvent_Event, HciMessage, HciMessage_Message, LeMetaEvent_Event,
 };
+use lru::LruCache;
 use pcap_async::{Config, Handle, Packet, PacketStream};
 
 mod measurement;
+mod types;
 
 use measurement::MeasurementBuilder;
+use types::Address;
 
-const ADDRESSES: [&[u8]; 2] = [
+// TODO: Parse from file
+const ADDRESSES: [Address; 2] = [
     // Devboard
-    &[79, 67, 92, 159, 209, 114],
+    Address([79, 67, 92, 159, 209, 114]),
     // Sensilo 1
-    &[0x7a, 0xf1, 0x67, 0x74, 0x4f, 0x73],
+    Address([0x73, 0x4f, 0x74, 0x67, 0xf1, 0x7a]),
 ];
+
+// Store a LRU cache with the last `DEDUPLICATION_LRU_SIZE` counters for every address.
+// If a counter value is contained in the cache, ignore the message.
+const DEDUPLICATION_LRU_SIZE: usize = 5;
+type DeduplicationCache = HashMap<Address, LruCache<u16, ()>>;
 
 fn main() -> std::io::Result<()> {
     env_logger::init();
@@ -42,11 +53,12 @@ fn main() -> std::io::Result<()> {
         let mut stream =
             PacketStream::new(config, std::sync::Arc::clone(&handle)).expect("Failed to build");
 
+        let mut deduplication_cache: DeduplicationCache = HashMap::new();
         while let Some(packets_result) = stream.next().await {
             if let Ok(packets) = packets_result {
                 for packet in packets {
                     log::trace!("{:?}", packet);
-                    let _ = process_packet(packet);
+                    let _ = process_packet(packet, &mut deduplication_cache);
                 }
             } else {
                 println!("Error: {:?}", packets_result);
@@ -57,7 +69,7 @@ fn main() -> std::io::Result<()> {
     })
 }
 
-fn process_packet(packet: Packet) -> Option<()> {
+fn process_packet(packet: Packet, deduplication_cache: &mut DeduplicationCache) -> Option<()> {
     // Validate length
     if packet.original_length() != packet.actual_length() {
         log::debug!(
@@ -107,16 +119,14 @@ fn process_packet(packet: Packet) -> Option<()> {
     };
 
     // Filter by address
-    if !ADDRESSES.contains(&adv_report.get_address()) {
-        log::debug!(
-            "Ignoring device with address {:?}",
-            &adv_report.get_address()
-        );
+    let address = Address::from_inverted_slice(&adv_report.get_address());
+    if !ADDRESSES.contains(&address) {
+        log::debug!("Ignoring device with address {}", address);
         return None;
     }
 
     // Get data
-    let mut builder = MeasurementBuilder::new(adv_report.get_address(), adv_report.get_rssi());
+    let mut builder = MeasurementBuilder::new(address, adv_report.get_rssi());
     log::trace!("Frame: {:?}", adv_report);
     for datum in adv_report.get_data() {
         match datum.get_data() {
@@ -139,8 +149,19 @@ fn process_packet(packet: Packet) -> Option<()> {
             }
         }
     }
-
     let measurement = builder.build().unwrap();
+
+    // Deduplicate beacons
+    let lru = deduplication_cache
+        .entry(address)
+        .or_insert_with(|| LruCache::new(DEDUPLICATION_LRU_SIZE));
+    if lru.get(&measurement.counter).is_some() {
+        log::debug!("Ignoring duplicate frame (counter {})", measurement.counter);
+        return None;
+    } else {
+        lru.put(measurement.counter, ());
+    }
+
     println!(
         "{} ({} RSSI): [{}] {} °C | {} %RH | {} Lux",
         measurement.local_name,

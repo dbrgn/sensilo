@@ -7,6 +7,7 @@ use hci::protocol::{
 use lru::LruCache;
 use pcap_async::{Config, Handle, Packet, PacketStream};
 
+mod config;
 mod measurement;
 mod types;
 
@@ -30,6 +31,10 @@ fn main() -> std::io::Result<()> {
     env_logger::init();
 
     println!("Sensilo Gateway\n");
+
+    // Parse config
+    println!("Loading config.toml...");
+    let config: config::Config = toml::from_str(&std::fs::read_to_string("config.toml")?)?;
 
     println!("Available bluetooth capture interfaces:");
     for iface in pcap_async::Info::all().expect("Could not get list of interfaces") {

@@ -13,4 +13,6 @@ hci = "0.1"
 log = "0.4"
 lru = "0.3"
 pcap-async = "0.4.1"
+serde = { version = "1", features = ["derive"] }
 smol = "0.1"
+toml = "0.5"

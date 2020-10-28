@@ -324,13 +324,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "panic-rtt-target"
-version = "0.1.1"
+name = "panic-persist"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfcd4deccf5edead7dcd0531448f0bab1b935e6d88e47225b4b7c6bd3a443180"
+checksum = "dd2e692a5954e3eb0c16f5dbaa75c4332a78d85851521f138c04ad95d6f5ee42"
 dependencies = [
  "cortex-m",
- "rtt-target",
 ]
 
 [[package]]
@@ -444,7 +443,7 @@ dependencies = [
  "cortex-m-rtic",
  "embedded-hal",
  "nrf52832-hal",
- "panic-rtt-target",
+ "panic-persist",
  "rtt-target",
  "rubble",
  "rubble-nrf5x",

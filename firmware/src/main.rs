@@ -2,8 +2,7 @@
 #![cfg_attr(not(test), no_std)]
 
 // Panic handler
-#[cfg(not(test))]
-use panic_rtt_target as _;
+use panic_persist::get_panic_message_utf8;
 
 use core::cmp::max;
 
@@ -82,6 +81,11 @@ const APP: () = {
         // Init RTT
         rtt_init_print!();
         rprintln!("Initializing…");
+
+        // Check for existing crash dumps
+        if let Some(msg) = get_panic_message_utf8() {
+            rprintln!("Found a crash dump:\n--- START OF CRASH---\n{}\n--- END OF CRASH ---", msg.trim());
+        }
 
         // Destructure device peripherals
         let pac::Peripherals {

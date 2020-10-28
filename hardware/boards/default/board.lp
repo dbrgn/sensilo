@@ -1874,7 +1874,7 @@
   (vertex (position 6.0 40.0) (angle 0.0))
  )
 
- (stroke_text 4b76a9d4-8786-4ccd-b420-ebb1c400de9b (layer brd_documentation)
+ (stroke_text 4b76a9d4-8786-4ccd-b420-ebb1c400de9b (layer top_placement)
   (height 1.0) (stroke_width 0.2) (letter_spacing auto) (line_spacing auto)
   (align left bottom) (position 12.85875 30.63875) (rotation 90.0)
   (auto_rotate true) (mirror false) (value "-")
@@ -1894,7 +1894,7 @@
   (align right center) (position 13.49375 16.98625) (rotation 0.0)
   (auto_rotate true) (mirror false) (value "TX")
  )
- (stroke_text ddea21ae-bed0-4968-8e9e-50d3b9df9831 (layer brd_documentation)
+ (stroke_text ddea21ae-bed0-4968-8e9e-50d3b9df9831 (layer top_placement)
   (height 1.0) (stroke_width 0.2) (letter_spacing auto) (line_spacing auto)
   (align left bottom) (position 12.065 25.0825) (rotation 0.0)
   (auto_rotate true) (mirror false) (value "+")

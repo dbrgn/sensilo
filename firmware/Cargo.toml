@@ -16,7 +16,7 @@ rubble = { git = "https://github.com/jonas-schievink/rubble" }
 rubble-nrf5x = { git = "https://github.com/jonas-schievink/rubble", features = ["52832"], default-features = false }
 shared-bus-rtic = "0.2"
 shtcx = "0.10"
-veml6030 = { git = "https://github.com/dbrgn/veml6030-rs/", branch = "integration-time-as-int" }
+veml6030 = { git = "https://github.com/eldruin/veml6030-rs/" }
 
 [profile.dev]
 codegen-units = 1

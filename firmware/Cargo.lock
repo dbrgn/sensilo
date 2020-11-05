@@ -533,8 +533,9 @@ checksum = "876e32dcadfe563a4289e994f7cb391197f362b6315dc45e8ba4aa6f564a4b3c"
 
 [[package]]
 name = "veml6030"
-version = "0.1.1"
-source = "git+https://github.com/eldruin/veml6030-rs/#b9754eb5669295d8604d827f10500ebb59f4e771"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab645740fe87f774fa88df734968ff1cd8474b94d869f10367eb9a7d520be383"
 dependencies = [
  "embedded-hal",
  "libm",

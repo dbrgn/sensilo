@@ -165,6 +165,16 @@ const APP: () = {
         }
     }
 
+    #[idle]
+    fn idle(_ctx: idle::Context) -> ! {
+        // It seems that the HFCLK is stopped in standby mode (entered through WFE/WFI).
+        // This prevents the monotonic timer from working. To avoid this issue, don't go into sleep
+        // mode in idle, but instead do busy-looping for now.
+        loop {
+            cortex_m::asm::nop();
+        }
+    }
+
     /// Start a measurement
     #[task(resources = [i2c, measurement_start], schedule = [collect_measurement])]
     fn start_measurement(ctx: start_measurement::Context) {

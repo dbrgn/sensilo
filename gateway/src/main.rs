@@ -14,14 +14,6 @@ mod types;
 use measurement::MeasurementBuilder;
 use types::Address;
 
-// TODO: Parse from file
-const ADDRESSES: [Address; 2] = [
-    // Devboard
-    Address([79, 67, 92, 159, 209, 114]),
-    // Sensilo 1
-    Address([0x73, 0x4f, 0x74, 0x67, 0xf1, 0x7a]),
-];
-
 // Store a LRU cache with the last `DEDUPLICATION_LRU_SIZE` counters for every address.
 // If a counter value is contained in the cache, ignore the message.
 const DEDUPLICATION_LRU_SIZE: usize = 5;
@@ -35,18 +27,32 @@ fn main() -> std::io::Result<()> {
     // Parse config
     println!("Loading config.toml...");
     let config: config::Config = toml::from_str(&std::fs::read_to_string("config.toml")?)?;
+    let addresses: Vec<Address> = config
+        .devices
+        .iter()
+        .map(|dev| Address::from_hex(&dev.hex_addr))
+        .collect();
 
     println!("Available bluetooth capture interfaces:");
     for iface in pcap_async::Info::all().expect("Could not get list of interfaces") {
         if iface.name.contains("blue") || iface.name.contains("ble") {
-            println!("  {}", iface.name);
+            println!("  - {}", iface.name);
             for ip in iface.ips {
-                println!("    {}", ip);
+                println!("    - {}", ip);
             }
         }
     }
-    println!();
 
+    println!("Listening for beacons from the following devices:");
+    for dev in config.devices {
+        if let Some(location) = dev.location {
+            println!("  - [{}] {} ({})", dev.hex_addr, dev.name, location);
+        } else {
+            println!("  - [{}] {}", dev.hex_addr, dev.name);
+        }
+    }
+
+    println!();
     smol::run(async {
         println!("Opening device bluetooth0...");
         let handle = Handle::live_capture("bluetooth0").expect("No handle created");
@@ -63,7 +69,7 @@ fn main() -> std::io::Result<()> {
             if let Ok(packets) = packets_result {
                 for packet in packets {
                     log::trace!("{:?}", packet);
-                    let _ = process_packet(packet, &mut deduplication_cache);
+                    let _ = process_packet(packet, &mut deduplication_cache, &addresses);
                 }
             } else {
                 println!("Error: {:?}", packets_result);
@@ -74,7 +80,11 @@ fn main() -> std::io::Result<()> {
     })
 }
 
-fn process_packet(packet: Packet, deduplication_cache: &mut DeduplicationCache) -> Option<()> {
+fn process_packet(
+    packet: Packet,
+    deduplication_cache: &mut DeduplicationCache,
+    addresses: &[Address],
+) -> Option<()> {
     // Validate length
     if packet.original_length() != packet.actual_length() {
         log::debug!(
@@ -125,7 +135,7 @@ fn process_packet(packet: Packet, deduplication_cache: &mut DeduplicationCache) 
 
     // Filter by address
     let address = Address::from_inverted_slice(&adv_report.get_address());
-    if !ADDRESSES.contains(&address) {
+    if !addresses.contains(&address) {
         log::debug!("Ignoring device with address {}", address);
         return None;
     }

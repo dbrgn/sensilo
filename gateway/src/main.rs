@@ -53,7 +53,7 @@ fn main() -> std::io::Result<()> {
     }
 
     println!();
-    smol::run(async {
+    smol::block_on(async {
         println!("Opening device bluetooth0...");
         let handle = Handle::live_capture("bluetooth0").expect("No handle created");
         //let handle = Handle::file_capture("/tmp/ble.pcap").expect("No handle created");

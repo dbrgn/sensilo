@@ -8,6 +8,8 @@ use lru::LruCache;
 use pcap_async::{Config, Handle, Packet, PacketStream};
 
 mod config;
+mod http;
+mod influxdb;
 mod measurement;
 mod types;
 
@@ -44,8 +46,8 @@ fn main() -> std::io::Result<()> {
     }
 
     println!("Listening for beacons from the following devices:");
-    for dev in config.devices {
-        if let Some(location) = dev.location {
+    for dev in &config.devices {
+        if let Some(ref location) = dev.location {
             println!("  - [{}] {} ({})", dev.hex_addr, dev.name, location);
         } else {
             println!("  - [{}] {}", dev.hex_addr, dev.name);
@@ -58,18 +60,20 @@ fn main() -> std::io::Result<()> {
         let handle = Handle::live_capture("bluetooth0").expect("No handle created");
         //let handle = Handle::file_capture("/tmp/ble.pcap").expect("No handle created");
 
-        let mut config = Config::default();
-        config.with_blocking(true);
+        let mut pcap_config = Config::default();
+        pcap_config.with_blocking(true);
 
         let mut stream =
-            PacketStream::new(config, std::sync::Arc::clone(&handle)).expect("Failed to build");
+            PacketStream::new(pcap_config, std::sync::Arc::clone(&handle)).expect("Failed to build");
 
         let mut deduplication_cache: DeduplicationCache = HashMap::new();
         while let Some(packets_result) = stream.next().await {
             if let Ok(packets) = packets_result {
                 for packet in packets {
                     log::trace!("{:?}", packet);
-                    let _ = process_packet(packet, &mut deduplication_cache, &addresses);
+                    // TODO: Non-await?
+                    let _ =
+                        process_packet(packet, &mut deduplication_cache, &config, &addresses).await;
                 }
             } else {
                 println!("Error: {:?}", packets_result);
@@ -80,9 +84,10 @@ fn main() -> std::io::Result<()> {
     })
 }
 
-fn process_packet(
+async fn process_packet(
     packet: Packet,
     deduplication_cache: &mut DeduplicationCache,
+    config: &config::Config,
     addresses: &[Address],
 ) -> Option<()> {
     // Validate length
@@ -113,7 +118,7 @@ fn process_packet(
     let event = if let HciMessage_Message::HciEvent(val) = parsed.1.get_message() {
         val
     } else {
-        log::debug!("Ignoring non-event message");
+        log::trace!("Ignoring non-event message");
         return None;
     };
 
@@ -121,7 +126,7 @@ fn process_packet(
     let le_event = if let HciEvent_Event::LeMetaEvent(val) = event.get_event() {
         val
     } else {
-        log::debug!("Ignoring non-LeMetaEvent event");
+        log::trace!("Ignoring non-LeMetaEvent event");
         return None;
     };
 
@@ -129,14 +134,14 @@ fn process_packet(
     let adv_report = if let LeMetaEvent_Event::LeAdvertisingReport(val) = le_event.get_event() {
         val
     } else {
-        log::debug!("Ignoring non-LeAdvertisingReport");
+        log::trace!("Ignoring non-LeAdvertisingReport");
         return None;
     };
 
     // Filter by address
     let address = Address::from_inverted_slice(&adv_report.get_address());
     if !addresses.contains(&address) {
-        log::debug!("Ignoring device with address {}", address);
+        log::trace!("Ignoring device with address {}", address);
         return None;
     }
 
@@ -184,14 +189,26 @@ fn process_packet(
         measurement.counter,
         measurement
             .temperature
+            .as_ref()
             .map(|t| t.as_degrees_celsius())
             .unwrap_or(-1.0),
-        measurement.humidity.map(|h| h.as_percent()).unwrap_or(-1.0),
+        measurement
+            .humidity
+            .as_ref()
+            .map(|h| h.as_percent())
+            .unwrap_or(-1.0),
         measurement
             .ambient_light
+            .as_ref()
             .map(|h| h.as_lux())
             .unwrap_or(-1.0),
     );
+
+    // TODO non-await
+    match influxdb::submit_measurement(&config.influxdb, &measurement).await {
+        Ok(_) => log::info!("Measurement submitted"),
+        Err(e) => log::error!("Measurement submission failed: {:#}", e),
+    }
 
     Some(())
 }

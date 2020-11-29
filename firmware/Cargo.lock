@@ -163,6 +163,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-dma"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46c8c02e4347a0267ca60813c952017f4c5948c232474c6010a381a337f1bda4"
+dependencies = [
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "embedded-hal"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -269,13 +278,14 @@ checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 
 [[package]]
 name = "nrf-hal-common"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "299e8e5b67542ae134c93722f03f3137d349b3786a35dd2b02a87701ea779201"
+checksum = "675eee40228591a1991eade1d4adc1a23fd7ff750b5c895ca068b9c2f0878b72"
 dependencies = [
  "cast",
  "cfg-if",
  "cortex-m",
+ "embedded-dma",
  "embedded-hal",
  "fixed",
  "nb 1.0.0",
@@ -286,9 +296,9 @@ dependencies = [
 
 [[package]]
 name = "nrf52832-hal"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fd1764acdf1f9da9803b00867586de13a2c23ab2b1231a3cf1ae4fc2cfbb403"
+checksum = "48bd1e014b982611704895bd7486b7f56529149d8448b64e596fb008d9cc2cee"
 dependencies = [
  "embedded-hal",
  "nrf-hal-common",
@@ -392,7 +402,7 @@ dependencies = [
 [[package]]
 name = "rubble"
 version = "0.0.3"
-source = "git+https://github.com/jonas-schievink/rubble#ed59fd68d318fa7a6febbcbc6425463db37c6a05"
+source = "git+https://github.com/jonas-schievink/rubble#6bc46da68176776ef36f31da5879f7a422cdd6c5"
 dependencies = [
  "bitflags",
  "heapless",
@@ -404,7 +414,7 @@ dependencies = [
 [[package]]
 name = "rubble-nrf5x"
 version = "0.0.3"
-source = "git+https://github.com/jonas-schievink/rubble#ed59fd68d318fa7a6febbcbc6425463db37c6a05"
+source = "git+https://github.com/jonas-schievink/rubble#6bc46da68176776ef36f31da5879f7a422cdd6c5"
 dependencies = [
  "nrf52832-hal",
  "rubble",

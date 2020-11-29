@@ -6,9 +6,9 @@ use panic_persist::get_panic_message_utf8;
 
 use core::cmp::max;
 
+use defmt_rtt as _;
 use nrf52832_hal::{self as hal, pac, prelude::*};
 use rtic::app;
-use rtt_target::{rprintln, rtt_init_print};
 use rubble::{
     beacon::Beacon,
     link::{ad_structure::AdStructure, DeviceAddress, MIN_PDU_BUF},
@@ -78,13 +78,11 @@ const APP: () = {
 
     #[init(resources = [ble_tx_buf, ble_rx_buf], spawn = [start_measurement])]
     fn init(ctx: init::Context) -> init::LateResources {
-        // Init RTT
-        rtt_init_print!();
-        rprintln!("Initializing…");
+        defmt::info!("Initializing…");
 
         // Check for existing crash dumps
         if let Some(msg) = get_panic_message_utf8() {
-            rprintln!("Found a crash dump:\n--- START OF CRASH---\n{}\n--- END OF CRASH ---", msg.trim());
+            defmt::error!("Found a crash dump:\n--- START OF CRASH---\n{:str}\n--- END OF CRASH ---", msg.trim());
         }
 
         // Destructure device peripherals
@@ -127,23 +125,25 @@ const APP: () = {
 
         // Initialize SHT sensor
         let mut sht = shtc3(bus_manager.acquire());
-        rprintln!(
-            "SHTC3: Device identifier is {}",
+        defmt::info!(
+            "SHTC3: Device identifier is {:u8}",
             sht.device_identifier().unwrap()
         );
 
         // Initialize VEML7700 lux sensor
         let mut veml = Veml6030::new(bus_manager.acquire(), veml6030::SlaveAddr::default());
-        if let Err(e) = veml.set_gain(veml6030::Gain::OneQuarter) {
-            rprintln!("VEML7700: Could not set gain: {:?}", e);
+        if let Err(_e) = veml.set_gain(veml6030::Gain::OneQuarter) {
+            //defmt::error!("VEML7700: Could not set gain: {:?}", e);
+            defmt::error!("VEML7700: Could not set gain");
         }
-        if let Err(e) = veml.set_integration_time(VEML_INTEGRATION_TIME) {
-            rprintln!("VEML7700: Could not set gain: {:?}", e);
+        if let Err(_e) = veml.set_integration_time(VEML_INTEGRATION_TIME) {
+            //defmt::error!("VEML7700: Could not set gain: {:?}", e);
+            defmt::error!("VEML7700: Could not set gain");
         }
 
         // Get bluetooth device address
         let device_address = get_device_address();
-        rprintln!("Bluetooth device address: {:?}", device_address);
+        defmt::info!("Bluetooth device address: {:[u8; 6]}", device_address.raw());
 
         // Initialize radio
         let radio = BleRadio::new(
@@ -156,7 +156,7 @@ const APP: () = {
         // Schedule measurement immediately
         ctx.spawn.start_measurement().unwrap();
 
-        rprintln!("Init done");
+        defmt::info!("Init done");
         init::LateResources {
             radio,
             device_address,
@@ -193,8 +193,9 @@ const APP: () = {
         //
         // Note: After enabling the sensor, a startup time of 4 ms plus the integration time must
         // be awaited.
-        if let Err(e) = i2c.veml.enable() {
-            rprintln!("VEML7700: Could not enable sensor: {:?}", e);
+        if let Err(_e) = i2c.veml.enable() {
+            //defmt::error!("VEML7700: Could not enable sensor: {:?}", e);
+            defmt::error!("VEML7700: Could not enable sensor");
         }
         let veml_delta_us: u32 = VEML_INTEGRATION_TIME.as_us() + 4_000;
 
@@ -228,8 +229,8 @@ const APP: () = {
 
         // Collect SHTC3 measurement result
         let sht_measurement = i2c.sht.get_measurement_result().unwrap();
-        rprintln!(
-            "SHTC3 measurement: {}°C / {} %RH",
+        defmt::info!(
+            "SHTC3 measurement: {:f32}°C / {:f32} %RH",
             sht_measurement.temperature.as_degrees_celsius(),
             sht_measurement.humidity.as_percent()
         );
@@ -237,16 +238,18 @@ const APP: () = {
         // Collect VEML7700 measurement result
         let veml_measurement = match i2c.veml.read_lux() {
             Ok(lux) => {
-                rprintln!("VEML7700 measurement: {:.1} lx", lux);
+                defmt::info!("VEML7700 measurement: {:f32} lx", lux);
                 Some(lux)
             }
-            Err(e) => {
-                rprintln!("VEML7700: Could not measure lux: {:?}", e);
+            Err(_e) => {
+                //defmt::error!("VEML7700: Could not measure lux: {:?}", e);
+                defmt::error!("VEML7700: Could not measure lux");
                 None
             }
         };
-        if let Err(e) = i2c.veml.disable() {
-            rprintln!("VEML7700: Could not shut down: {:?}", e);
+        if let Err(_e) = i2c.veml.disable() {
+            //defmt::error!("VEML7700: Could not shut down: {:?}", e);
+            defmt::error!("VEML7700: Could not shut down");
         }
 
         // Prepare beacon payload
@@ -279,11 +282,11 @@ const APP: () = {
         let beacon = Beacon::new(*ctx.resources.device_address, &advertisement_data)
             .expect("Could not create beacon");
         *ctx.resources.beacon = Some(beacon);
-        rprintln!("Created beacon with counter {}", COUNTER);
+        defmt::info!("Created beacon with counter {:u16}", COUNTER);
 
         // Broadcast beacon
         if ctx.spawn.broadcast_beacon(0).is_err() {
-            rprintln!("Error: Could not spawn broadcast_beacon");
+            defmt::error!("Error: Could not spawn broadcast_beacon");
         }
 
         // Increment counter (allow wrap-around)
@@ -307,17 +310,17 @@ const APP: () = {
 
         if let Some(beacon) = ctx.resources.beacon {
             beacon.broadcast(ctx.resources.radio);
-            rprintln!("Sent beacon");
+            defmt::info!("Sent beacon");
 
             if ctx
                 .schedule
                 .broadcast_beacon(ctx.scheduled + BEACON_BURST_INTERVAL_MS.millis(), i + 1)
                 .is_err()
             {
-                rprintln!("Error: Could not re-schedule broadcast_beacon");
+                defmt::error!("Error: Could not re-schedule broadcast_beacon");
             }
         } else {
-            rprintln!("Error: No beacon that can be broadcasted");
+            defmt::error!("Error: No beacon that can be broadcasted");
         }
     }
 

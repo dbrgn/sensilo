@@ -21,14 +21,31 @@ use types::Address;
 const DEDUPLICATION_LRU_SIZE: usize = 5;
 type DeduplicationCache = HashMap<Address, LruCache<u16, ()>>;
 
+fn print_usage(args: &[String]) {
+    println!("Sensilo Gateway\n");
+    println!("Usage: {} [-h|--help] [CONFIGFILE]", args[0]);
+}
+
 fn main() -> std::io::Result<()> {
     env_logger::init();
+
+    // Parse args
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|arg| arg == "-h" || arg == "--help") {
+        print_usage(&args);
+        std::process::exit(0);
+    }
+    if args.len() > 2 {
+        print_usage(&args);
+        std::process::exit(1);
+    }
 
     println!("Sensilo Gateway\n");
 
     // Parse config
-    println!("Loading config.toml...");
-    let config: config::Config = toml::from_str(&std::fs::read_to_string("config.toml")?)?;
+    let configfile = args.iter().nth(1).map(|s| &**s).unwrap_or("config.toml");
+    println!("Loading config from {}...", configfile);
+    let config: config::Config = toml::from_str(&std::fs::read_to_string(configfile)?)?;
     let addresses: Vec<Address> = config
         .devices
         .iter()

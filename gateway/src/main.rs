@@ -26,7 +26,7 @@ fn print_usage(args: &[String]) {
     println!("Usage: {} [-h|--help] [CONFIGFILE]", args[0]);
 }
 
-fn main() -> std::io::Result<()> {
+fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     // Parse args

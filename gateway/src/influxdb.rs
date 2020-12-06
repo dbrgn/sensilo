@@ -1,15 +1,25 @@
 //! Send stats to InfluxDB with async-h1.
+use std::time::Duration;
 
 use anyhow::{bail, Result};
-use http_types::{auth::BasicAuth, Method, Request, StatusCode};
-use smol::prelude::*;
-use url::Url;
+use ureq::Agent;
 
 use crate::config;
-use crate::http;
 use crate::measurement::Measurement;
 
-pub async fn submit_measurement(config: &config::InfluxDb, mmt: &Measurement<'_>) -> Result<()> {
+/// Create an ureq agent.
+pub fn make_ureq_agent() -> Agent {
+    ureq::AgentBuilder::new()
+        .timeout_read(Duration::from_secs(5))
+        .timeout_write(Duration::from_secs(5))
+        .build()
+}
+
+pub async fn submit_measurement(
+    agent: Agent,
+    config: &config::InfluxDb,
+    mmt: &Measurement<'_>,
+) -> Result<()> {
     // Prepare payloads
     let mut payloads = vec![];
     let tags = format!("address={},local_name={}", mmt.address, mmt.local_name);
@@ -34,33 +44,50 @@ pub async fn submit_measurement(config: &config::InfluxDb, mmt: &Measurement<'_>
     }
     let payload = payloads.join("\n");
 
+    // Create basic auth header
+    let auth = format!(
+        "Basic {}",
+        base64::encode(format!("{}:{}", &config.user, &config.pass))
+    );
+    println!("Auth: {:?}", auth);
+
     // Create request
     let url = format!("{}/write?db={}", config.connection_string, config.db);
-    let mut req = Request::new(Method::Post, Url::parse(&url)?);
-    req.set_body(payload);
-    let auth = BasicAuth::new(&config.user, &config.pass);
-    auth.apply(&mut req);
 
     // Send request to server
-    let mut resp = http::fetch(req).await?;
+    let resp: ureq::Response = smol::unblock(move || {
+        agent
+            .post(&url)
+            .set("authorization", &auth)
+            .error_on_non_2xx(false)
+            .send_string(&payload)
+    })
+    .await?;
+
+    // Handle response
     match resp.status() {
-        StatusCode::NoContent => {}
-        StatusCode::NotFound => {
+        // No content
+        204 => {}
+        // Not found
+        404 => {
             log::warn!("InfluxDB database {} not found", config.db);
             bail!("InfluxDB database {} not found", config.db);
         }
-        StatusCode::BadRequest => {
-            let mut buf = Vec::new();
-            resp.read_to_end(&mut buf).await?;
-            let body = String::from_utf8_lossy(&buf);
+        // Bad request, permission denied
+        400 | 401 => {
+            let status = format!("{} ({})", resp.status(), resp.status_text());
+            let body = resp
+                .into_string()
+                .unwrap_or_else(|e| format!("[response decode error: {}]", e));
             log::debug!(
                 "Could not send data to InfluxDB: Bad request: {}",
                 body.trim()
             );
-            bail!("Could not send data to InfluxDB: {}", resp.status())
+            bail!("Could not send data to InfluxDB: {}", status)
         }
         _ => {
-            bail!("Invalid status code: {}", resp.status());
+            let status = format!("{} ({})", resp.status(), resp.status_text());
+            bail!("Invalid status code: {}", status);
         }
     }
     Ok(())

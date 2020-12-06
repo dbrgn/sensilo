@@ -8,7 +8,6 @@ use lru::LruCache;
 use pcap_async::{Config, Handle, Packet, PacketStream};
 
 mod config;
-mod http;
 mod influxdb;
 mod measurement;
 mod types;
@@ -71,6 +70,9 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Create HTTP client
+    let agent = influxdb::make_ureq_agent();
+
     println!();
     smol::block_on(async {
         println!("Opening device bluetooth0...");
@@ -80,8 +82,8 @@ fn main() -> anyhow::Result<()> {
         let mut pcap_config = Config::default();
         pcap_config.with_blocking(true);
 
-        let mut stream =
-            PacketStream::new(pcap_config, std::sync::Arc::clone(&handle)).expect("Failed to build");
+        let mut stream = PacketStream::new(pcap_config, std::sync::Arc::clone(&handle))
+            .expect("Failed to build");
 
         let mut deduplication_cache: DeduplicationCache = HashMap::new();
         while let Some(packets_result) = stream.next().await {
@@ -89,8 +91,14 @@ fn main() -> anyhow::Result<()> {
                 for packet in packets {
                     log::trace!("{:?}", packet);
                     // TODO: Non-await?
-                    let _ =
-                        process_packet(packet, &mut deduplication_cache, &config, &addresses).await;
+                    let _ = process_packet(
+                        packet,
+                        &mut deduplication_cache,
+                        &config,
+                        &addresses,
+                        agent.clone(),
+                    )
+                    .await;
                 }
             } else {
                 println!("Error: {:?}", packets_result);
@@ -106,6 +114,7 @@ async fn process_packet(
     deduplication_cache: &mut DeduplicationCache,
     config: &config::Config,
     addresses: &[Address],
+    agent: ureq::Agent,
 ) -> Option<()> {
     // Validate length
     if packet.original_length() != packet.actual_length() {
@@ -222,7 +231,7 @@ async fn process_packet(
     );
 
     // TODO non-await
-    match influxdb::submit_measurement(&config.influxdb, &measurement).await {
+    match influxdb::submit_measurement(agent, &config.influxdb, &measurement).await {
         Ok(_) => log::info!("Measurement submitted"),
         Err(e) => log::error!("Measurement submission failed: {:#}", e),
     }

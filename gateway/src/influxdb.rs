@@ -49,7 +49,6 @@ pub async fn submit_measurement(
         "Basic {}",
         base64::encode(format!("{}:{}", &config.user, &config.pass))
     );
-    println!("Auth: {:?}", auth);
 
     // Create request
     let url = format!("{}/write?db={}", config.connection_string, config.db);

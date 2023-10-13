@@ -144,6 +144,45 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8aebca1129a03dc6dc2b127edd729435bbc4a37e1d5f4d7513165089ceb02634"
 
 [[package]]
+name = "defmt"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1114c9158e44c29a187f2416b74208764ab7313b451941068ed4a9e58bf5220c"
+dependencies = [
+ "defmt-macros",
+ "heapless",
+ "semver 0.11.0",
+]
+
+[[package]]
+name = "defmt-macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "925bb4a9cfaee4555fa533582032be2b121a11c1c203bc0dd17065497738ffb3"
+dependencies = [
+ "defmt-parser",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "defmt-parser"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "812b30ff14930407c86a23e256ac050b8e6913f597adcc88e29d40517f7a16de"
+
+[[package]]
+name = "defmt-rtt"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a3b88b3d83d73d910738feb4bb91543f61622420dab760c769f4111b379e354"
+dependencies = [
+ "cortex-m",
+ "defmt",
+]
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -343,6 +382,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pest"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10f4872ae94d7b90ae48754df22fd42ad52ce740b8f370b03da4835417403e53"
+dependencies = [
+ "ucd-trie",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -390,16 +438,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rtt-target"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0869b4c5b6a6d8c5583fc473f9eb3423a170f77626b8c8a7fb18eddcda5770e2"
-dependencies = [
- "cortex-m",
- "ufmt-write",
-]
-
-[[package]]
 name = "rubble"
 version = "0.0.3"
 source = "git+https://github.com/jonas-schievink/rubble#6bc46da68176776ef36f31da5879f7a422cdd6c5"
@@ -426,7 +464,7 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
- "semver",
+ "semver 0.9.0",
 ]
 
 [[package]]
@@ -435,7 +473,16 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
 dependencies = [
- "semver-parser",
+ "semver-parser 0.7.0",
+]
+
+[[package]]
+name = "semver"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f301af10236f6df4160f7c3f04eec6dbc70ace82d23326abad5edee88801c6b6"
+dependencies = [
+ "semver-parser 0.10.1",
 ]
 
 [[package]]
@@ -445,16 +492,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
+name = "semver-parser"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42ef146c2ad5e5f4b037cd6ce2ebb775401729b19a82040c1beac9d36c7d1428"
+dependencies = [
+ "pest",
+]
+
+[[package]]
 name = "sensilo"
 version = "0.1.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "cortex-m-rtic",
+ "defmt",
+ "defmt-rtt",
  "embedded-hal",
  "nrf52832-hal",
  "panic-persist",
- "rtt-target",
  "rubble",
  "rubble-nrf5x",
  "shared-bus-rtic",
@@ -524,10 +581,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "373c8a200f9e67a0c95e62a4f52fbf80c23b4381c05a17845531982fa99e6b33"
 
 [[package]]
-name = "ufmt-write"
-version = "0.1.0"
+name = "ucd-trie"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e87a2ed6b42ec5e28cc3b94c09982969e9227600b2e3dcbc1db927a84c06bd69"
+checksum = "56dee185309b50d1f11bfedef0fe6d036842e3fb77413abef29f8f8d1c5d4c1c"
 
 [[package]]
 name = "unicode-xid"
